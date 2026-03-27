@@ -102,7 +102,62 @@ def get_listing_details(listing_id) -> dict:
     # ==============================
     # YOUR CODE STARTS HERE
     # ==============================
-    pass
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    html_path = os.path.join(base_dir, "html_files", f"listing_{listing_id}.html")
+
+    with open(html_path, encoding='utf-8-sig') as f:
+        soup = BeautifulSoup(f, 'html.parser')
+
+    text = soup.get_text('\n')
+
+    policy_match = re.search(r'(20\d{2}-\d{6}STR|STR-\d{7})', text)
+    if policy_match:
+        policy_number = policy_match.group(1)
+    elif re.search(r'\bExempt\b', text):
+        policy_number = "Exempt"
+    else:
+        policy_number = "Pending"
+
+    host_type = "Superhost" if "Superhost" in text else "regular"
+
+    host_match = re.search(r'[Hh]osted by[\s\xa0]+([^\n\r]+)', text)
+    if host_match:
+        host_name = host_match.group(1).strip().replace('\xa0', ' ')
+    else:
+        host_name = "Unknown"
+
+    subtitle = None
+    for h in soup.find_all('h2'):
+        t = h.get_text(strip=True)
+        if 'hosted by' in t.lower():
+            subtitle = t
+            break
+    if not subtitle:
+        d = soup.find('div', class_='_kh3xmo')
+        if d:
+            subtitle = d.get_text(strip=True)
+
+    if subtitle and 'Private' in subtitle:
+        room_type = "Private Room"
+    elif subtitle and 'Shared' in subtitle:
+        room_type = "Shared Room"
+    else:
+        room_type = "Entire Room"
+
+    loc_match = re.search(r'Location[\s\xa0]*[\n\r]\s*([\d.]+)', text)
+    if not loc_match:
+        loc_match = re.search(r'Location\s+([\d.]+)', text)
+    location_rating = float(loc_match.group(1)) if loc_match else 0.0
+
+    return {
+        listing_id: {
+            "policy_number": policy_number,
+            "host_type": host_type,
+            "host_name": host_name,
+            "room_type": room_type,
+            "location_rating": location_rating,
+        }
+    }
     # ==============================
     # YOUR CODE ENDS HERE
     # ==============================
