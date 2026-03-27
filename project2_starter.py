@@ -1,7 +1,7 @@
 # SI 201 HW4 (Library Checkout System)
-# Your name:
-# Your student id:
-# Your email:
+# Your name: Ava Moon & Grace Yang
+# Your student id: 15169006, 
+# Your email: avamoon@umich.edu
 # Who or what you worked with on this homework (including generative AI like ChatGPT):
 # If you worked with generative AI also add a statement for how you used it.
 # e.g.:
@@ -41,7 +41,39 @@ def load_listing_results(html_path) -> list[tuple]:
     # ==============================
     # YOUR CODE STARTS HERE
     # ==============================
-    pass
+    with open(html_path, encoding='utf-8-sig') as f:
+        soup = BeautifulSoup(f, 'html.parser')
+
+    links = soup.find_all('a', href=re.compile(r'/rooms/\d+'))
+    seen = set()
+    results = []
+
+    for a in links:
+        m = re.search(r'/rooms/(\d+)', a['href'])
+        if not m:
+            continue
+        lid = m.group(1)
+        if lid in seen:
+            continue
+        seen.add(lid)
+
+        title = None
+        parent = a
+        for _ in range(6):
+            parent = parent.parent
+            if parent is None:
+                break
+            t = parent.find(['div', 'span'], string=re.compile(r' in '))
+            if t:
+                candidate = t.get_text(strip=True)
+                if len(candidate) < 80:
+                    title = candidate
+                    break
+
+        if title:
+            results.append((title, lid))
+
+    return results
     # ==============================
     # YOUR CODE ENDS HERE
     # ==============================
